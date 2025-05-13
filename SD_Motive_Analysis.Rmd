@@ -1,0 +1,311 @@
+---
+title: "Scooby Doo Villain Motive Analysis"
+author: "Leopoldine Mirtil"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Source Data
+
+The data used in this project was uploaded by the user Plummye on [Kaggle.com](https://www.kaggle.com/datasets/williamschooleman/scoobydoo-complete?select=Scooby-Doo+Complete+-+Episode+List+-+Update+9+15+21.csv#). It contains information on all Scooby-Doo episodes, movies and specials as of 9/15/2021. The data has 75 columns covering numerous variables including show/movie information, monster information, culprit information, motives, character appearances,  and gags(jinkies, zoinks, lost glasses, traps set, etc). 
+
+## Objective
+
+I was watching 'Scooby-Doo: Where Are You?'  just as the culprit was being unmasked. This caused me to muse on the motives of most Scooby-Doo villains, especially considering how far they go to achieve their goal. In this analysis, I will examine the motives of the villains from several Scooby-Doo tv shows, featuring the classic gang of Fred, Daphne, Velma, Shaggy and Scooby-Doo.
+
+### Task
+  1. Determine the top and bottom five overall motives from all series
+  2. Examine the motives between male and female culprits
+  3. Identify the top three motives for each show
+  4. Identify the top three motives per environment and year
+
+### Step 1: Get Data
+
+#### Load Library
+
+```{r, message=FALSE, warning=FALSE}
+#data manipulation
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+
+#documentation & markdown
+library(knitr)
+
+#creating charts & interactive plots 
+library(ggplot2)
+library(plotly)
+library(webshot) #screenshot of plotly chart in markdown
+```
+
+
+#### Import Data
+
+```{r}
+df <- read.csv('Scooby-Doo Completed.csv')
+```
+
+
+### Step 2: Clean & Modify Data
+
+#### Select and Inspect Data
+
+```{r}
+#copy data 
+sc_df <- df
+
+#select columns
+sc_df <- sc_df[,c(2,8,10,42,48,50)]
+
+#view column names 
+colnames(sc_df)
+```
+
+#### Check for Missing/NA values
+
+```{r}
+sapply(sc_df, function(x) sum(is.na(x)))
+```
+
+
+#### Check for Empty/Blank Values
+
+```{r}
+sapply(sc_df, function(x) sum(x==""))
+```
+
+
+#### Filter and Modify Data
+
+```{r}
+#copy data just in case
+scoob <- sc_df
+
+#filter data to: include only the tv shows
+                #include only shows with the full Scooby-Doo 
+                #remove NULL values from motive column
+scoob <- scoob %>%
+  filter((format == "TV Series") | (format == "TV Series (segmented)")) %>%
+  filter((series.name != "Lego") & (series.name  != "Warner Home Video") &
+         (series.name != "Shaggy & Scooby-Doo Get a Clue!") & (series.name  != "Night of the Living Doo") &
+         (series.name != "The Scooby-Doo Project") & (series.name  != "The 13 Ghosts of Scooby-Doo") &
+         (series.name != "The New Scooby and Scrappy Doo Show") & (series.name  != "Scooby-Doo and Scrappy-Doo (second series)") &
+         (series.name != "Scooby-Doo and Scrappy-Doo (first series)") & (series.name  != "Laff-a-Lympics")) %>%
+  filter(motive != "NULL")
+
+#change data type 
+scoob$date.aired <- as.Date(scoob$date.aired)
+
+#drop format column
+scoob <- scoob[-c(3)]
+
+#rename columns
+scoob <- rename(scoob, series=series.name, environment=setting.terrain)
+```
+
+
+#### View Data
+
+```{r}
+str(scoob)
+```
+
+
+```{r, echo=FALSE}
+##clean environment
+rm(df, sc_df, scd)
+```
+
+### Step 3: Analyze Data
+
+```{r}
+summary(scoob)
+```
+
+#### Top & Bottom 5 Motives from All Episodes
+
+```{r}
+scoob %>%
+  group_by(motive) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count)) %>%
+  slice(unique(c(1:5, n() - 4:0))) 
+```
+
+
+#### Top 3 Motives by Series
+
+```{r}
+scoob %>%
+  group_by(series, motive) %>%
+  reframe(count=n()) %>%
+  arrange(series, desc(count)) %>%
+  group_by(series) %>%
+  slice(1:3)
+```
+
+
+#### Motive Count by Gender
+
+```{r}
+scoob %>%
+  group_by(culprit.gender, motive) %>%
+  separate_rows(culprit.gender, sep = ",") %>%
+  mutate(culprit.gender=trimws(culprit.gender)) %>%
+  group_by(culprit.gender, motive) %>%
+  reframe(count=n()) %>%
+  arrange(motive, desc(count)) %>%
+  filter(culprit.gender != "NULL")
+```
+
+
+#### Top 3 Motives by Environment
+
+```{r}
+scoob %>%
+  group_by(environment, motive) %>%
+  reframe(count=n()) %>%
+  arrange(environment, desc(count)) %>%
+  group_by(environment) %>%
+  slice(1:3)
+```
+
+
+#### Top 3 Motives by Year
+
+```{r}
+scoob %>%
+  mutate(aired.year=year(date.aired)) %>%
+  group_by(aired.year, motive) %>%
+  reframe(count=n()) %>%
+  arrange(aired.year, desc(count)) %>%
+  group_by(aired.year) %>%
+  slice(1:3)
+```
+
+
+### Step 4: Visualize Data
+
+```{r, echo=FALSE, warning=FALSE}
+scoob %>%
+  group_by(motive) %>%
+  summarise(count=n()) %>%
+    ggplot(aes(x=fct_reorder(motive, +count), y=count))+
+    geom_col(fill="chocolate2") +
+    ggtitle('Motive Count of Scooby-Doo Culprits') +
+    theme(axis.title.y=element_blank(),
+          axis.title.x=element_blank(),
+          plot.title = element_text(hjust = 0.5)) +
+    coord_flip()
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+scoob %>%
+  group_by(culprit.gender, motive) %>%
+  separate_rows(culprit.gender, sep = ",") %>%
+  filter(culprit.gender != "NULL") %>%
+  mutate(culprit.gender=trimws(culprit.gender)) %>%
+  group_by(culprit.gender, motive) %>%
+  reframe(count=n()) %>%
+  group_by(motive) %>%
+  mutate(perc = prop.table(count)) %>%
+    ggplot(aes(x=perc, y=reorder(motive, +count), fill=culprit.gender)) +
+    geom_bar(position='stack', stat="identity") +
+    geom_text(aes(label = scales::percent(perc,accuracy = 1)), size=3,
+              position = position_stack(vjust = 0.5,reverse = FALSE)) +
+    scale_fill_manual(values=c("mediumorchid4", 
+                             "olivedrab3")) +
+    scale_x_continuous(labels = scales::percent_format()) +
+    ggtitle("Motive Count Percentage by Culprits' Gender") +
+    theme(axis.title.x=element_blank(), 
+          axis.title.y=element_blank(),
+          plot.title = element_text(hjust = .5)) +
+    guides(fill=guide_legend(title="Gender")) 
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+scoob %>%
+  mutate(aired.year=year(date.aired)) %>%
+  group_by(aired.year, motive) %>%
+  reframe(count=n()) %>%
+  arrange(aired.year, desc(count)) %>%
+  group_by(aired.year) %>%
+    ggplot(aes(x=aired.year, y=count, group=motive, fill=motive)) +
+    geom_area() +
+    geom_line(aes(ymax= count, colour=motive), position="stack", show.legend = FALSE) +
+    ggtitle('Annual Motive Count of Scooby-Doo Episodes') +
+    theme(axis.title.x=element_blank(), 
+          axis.title.y=element_blank(),
+          axis.text.x = element_text(angle = 55, hjust=1),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.5)) + 
+    facet_wrap(vars(motive))
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+scoob %>%
+  group_by(series, motive) %>%
+  reframe(count=n()) %>%
+  arrange(series, desc(count)) %>%
+    plot_ly(x = ~motive, y = ~count, color=~series, type = 'bar',
+           colors= c("#3399FF", "#D4661B", "#128A84", "#F2C2C2","#8E6357","#B2BB1B","#A51994","#79AF30","#F1D71F")) %>%
+      layout(yaxis = list(title = ""),
+             xaxis = list(title = "", tickangle = -45),
+             title="<br>Total Motive Count by Scooby-Doo Series<br>", 
+             legend = list(x = 110, y = 0.5),
+             updatemenus = list(
+          list(
+          x= 1.65, 
+          y=.85,
+        buttons = list(
+          list(method = "restyle",
+               args = list("visible", list(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)),
+               label = "All Series"),
+          
+          list(method = "restyle",
+               args = list("visible", list(TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)),
+               label = "A Pup Named Scooby-Doo"),
+
+          list(method = "restyle",
+               args = list("visible", list(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)),
+               label = "Be Cool, Scooby-Doo!"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE)),
+               label = "Scooby Doo, Where Are You!"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE)),
+               label = "Scooby-Doo Mystery Incorporated"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE)),
+               label = "Scooby-Doo and Guess Who?"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE)),
+               label = "The New Scooby-Doo Movies"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE)),
+               label = "The New Scooby-Doo Mysteries"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE)),
+               label = "The Scooby-Doo Show"),
+          
+          list(method = "restyle",
+               args = list("visible", list(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE)),
+               label = "What's New Scooby-Doo?")))))
+```
+
