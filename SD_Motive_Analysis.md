@@ -118,6 +118,11 @@ scoob$date.aired <- as.Date(scoob$date.aired)
 #drop format column
 scoob <- scoob[-c(3)]
 
+#split column values
+scoob <- scoob %>%
+  separate_rows(culprit.gender, sep = ",") %>%
+  mutate(culprit.gender=trimws(culprit.gender))
+
 #rename columns
 scoob <- rename(scoob, series=series.name, environment=setting.terrain)
 ```
@@ -128,12 +133,12 @@ scoob <- rename(scoob, series=series.name, environment=setting.terrain)
 str(scoob)
 ```
 
-    ## 'data.frame':    324 obs. of  5 variables:
-    ##  $ series        : chr  "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" ...
-    ##  $ date.aired    : Date, format: "1969-09-13" "1969-09-20" ...
-    ##  $ environment   : chr  "Urban" "Coast" "Island" "Cave" ...
-    ##  $ culprit.gender: chr  "Male" "Male" "Male" "Male" ...
-    ##  $ motive        : chr  "Theft" "Theft" "Treasure" "Natural Resource" ...
+    ## tibble [439 × 5] (S3: tbl_df/tbl/data.frame)
+    ##  $ series        : chr [1:439] "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" "Scooby Doo, Where Are You!" ...
+    ##  $ date.aired    : Date[1:439], format: "1969-09-13" "1969-09-20" ...
+    ##  $ environment   : chr [1:439] "Urban" "Coast" "Island" "Cave" ...
+    ##  $ culprit.gender: chr [1:439] "Male" "Male" "Male" "Male" ...
+    ##  $ motive        : chr [1:439] "Theft" "Theft" "Treasure" "Natural Resource" ...
 
     ## Warning in rm(df, sc_df, scd): object 'scd' not found
 
@@ -144,14 +149,14 @@ summary(scoob)
 ```
 
     ##     series            date.aired         environment        culprit.gender    
-    ##  Length:324         Min.   :1969-09-13   Length:324         Length:324        
-    ##  Class :character   1st Qu.:1978-11-02   Class :character   Class :character  
-    ##  Mode  :character   Median :2004-03-23   Mode  :character   Mode  :character  
-    ##                     Mean   :1998-11-01                                        
-    ##                     3rd Qu.:2015-10-24                                        
+    ##  Length:439         Min.   :1969-09-13   Length:439         Length:439        
+    ##  Class :character   1st Qu.:1978-11-07   Class :character   Class :character  
+    ##  Mode  :character   Median :2005-02-11   Mode  :character   Mode  :character  
+    ##                     Mean   :1999-08-04                                        
+    ##                     3rd Qu.:2016-03-01                                        
     ##                     Max.   :2021-02-25                                        
     ##     motive         
-    ##  Length:324        
+    ##  Length:439        
     ##  Class :character  
     ##  Mode  :character  
     ##                    
@@ -171,14 +176,14 @@ scoob %>%
     ## # A tibble: 10 × 2
     ##    motive           count
     ##    <chr>            <int>
-    ##  1 Competition        127
-    ##  2 Theft               87
-    ##  3 Treasure            36
-    ##  4 Natural Resource    19
-    ##  5 Smuggling           17
-    ##  6 Entertainment        2
-    ##  7 Extortion            2
-    ##  8 Safety               2
+    ##  1 Competition        172
+    ##  2 Theft              119
+    ##  3 Treasure            50
+    ##  4 Natural Resource    27
+    ##  5 Smuggling           22
+    ##  6 Safety               3
+    ##  7 Abduction            2
+    ##  8 Assistance           2
     ##  9 Simulation           2
     ## 10 Imagination          1
 
@@ -198,24 +203,21 @@ scoob %>%
     ##    series                          motive      count
     ##    <chr>                           <chr>       <int>
     ##  1 A Pup Named Scooby-Doo          Competition    11
-    ##  2 A Pup Named Scooby-Doo          Theft          10
-    ##  3 A Pup Named Scooby-Doo          Assistance      2
-    ##  4 Be Cool, Scooby-Doo!            Competition    30
-    ##  5 Be Cool, Scooby-Doo!            Theft          13
-    ##  6 Be Cool, Scooby-Doo!            Treasure        4
-    ##  7 Scooby Doo, Where Are You!      Theft          11
+    ##  2 A Pup Named Scooby-Doo          Theft          11
+    ##  3 A Pup Named Scooby-Doo          Smuggling       3
+    ##  4 Be Cool, Scooby-Doo!            Competition    40
+    ##  5 Be Cool, Scooby-Doo!            Theft          18
+    ##  6 Be Cool, Scooby-Doo!            Treasure        7
+    ##  7 Scooby Doo, Where Are You!      Theft          12
     ##  8 Scooby Doo, Where Are You!      Competition     4
     ##  9 Scooby Doo, Where Are You!      Treasure        3
-    ## 10 Scooby-Doo Mystery Incorporated Competition    22
+    ## 10 Scooby-Doo Mystery Incorporated Theft          30
     ## # ℹ 17 more rows
 
 #### Motive Count by Gender
 
 ``` r
 scoob %>%
-  group_by(culprit.gender, motive) %>%
-  separate_rows(culprit.gender, sep = ",") %>%
-  mutate(culprit.gender=trimws(culprit.gender)) %>%
   group_by(culprit.gender, motive) %>%
   reframe(count=n()) %>%
   arrange(motive, desc(count)) %>%
@@ -253,15 +255,15 @@ scoob %>%
     ##    environment motive      count
     ##    <chr>       <chr>       <int>
     ##  1 Air         Competition     1
-    ##  2 Cave        Treasure        4
+    ##  2 Cave        Treasure        6
     ##  3 Cave        Competition     1
     ##  4 Cave        Conquer         1
-    ##  5 Coast       Competition     3
-    ##  6 Coast       Smuggling       2
-    ##  7 Coast       Counterfeit     1
-    ##  8 Desert      Competition     9
-    ##  9 Desert      Theft           3
-    ## 10 Desert      Treasure        2
+    ##  5 Coast       Smuggling       4
+    ##  6 Coast       Competition     3
+    ##  7 Coast       Counterfeit     2
+    ##  8 Desert      Competition    12
+    ##  9 Desert      Theft           4
+    ## 10 Desert      Treasure        4
     ## # ℹ 28 more rows
 
 #### Top 3 Motives by Year
@@ -280,24 +282,24 @@ scoob %>%
     ## # Groups:   aired.year [28]
     ##    aired.year motive      count
     ##         <dbl> <chr>       <int>
-    ##  1       1969 Theft           5
+    ##  1       1969 Theft           6
     ##  2       1969 Competition     4
     ##  3       1969 Treasure        2
     ##  4       1970 Theft           6
-    ##  5       1970 Smuggling       2
-    ##  6       1970 Inheritance     1
-    ##  7       1972 Theft           5
-    ##  8       1972 Treasure        3
-    ##  9       1972 Competition     2
-    ## 10       1973 Competition     6
+    ##  5       1970 Inheritance     2
+    ##  6       1970 Smuggling       2
+    ##  7       1972 Theft           7
+    ##  8       1972 Treasure        5
+    ##  9       1972 Competition     3
+    ## 10       1973 Competition    10
     ## # ℹ 68 more rows
 
 ### Step 4: Visualize Data
-
-![](SD_Motive_Analysis_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ![](SD_Motive_Analysis_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ![](SD_Motive_Analysis_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ![](SD_Motive_Analysis_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+![](SD_Motive_Analysis_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->

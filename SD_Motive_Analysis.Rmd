@@ -1,7 +1,7 @@
 ---
 title: "Scooby Doo Villain Motive Analysis"
 author: "Leopoldine Mirtil"
-output: html_document
+output: rmarkdown::github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -103,8 +103,19 @@ scoob$date.aired <- as.Date(scoob$date.aired)
 #drop format column
 scoob <- scoob[-c(3)]
 
+#split column values
+scoob <- scoob %>%
+  separate_rows(culprit.gender, sep = ",") %>%
+  mutate(culprit.gender=trimws(culprit.gender))
+
 #rename columns
 scoob <- rename(scoob, series=series.name, environment=setting.terrain)
+```
+
+
+```{r, echo=FALSE}
+#export modified file
+write.csv(scoob, 'scoob.csv', row.names = FALSE)
 ```
 
 
@@ -153,9 +164,6 @@ scoob %>%
 
 ```{r}
 scoob %>%
-  group_by(culprit.gender, motive) %>%
-  separate_rows(culprit.gender, sep = ",") %>%
-  mutate(culprit.gender=trimws(culprit.gender)) %>%
   group_by(culprit.gender, motive) %>%
   reframe(count=n()) %>%
   arrange(motive, desc(count)) %>%
@@ -208,10 +216,7 @@ scoob %>%
 ```{r, echo=FALSE, warning=FALSE}
 scoob %>%
   group_by(culprit.gender, motive) %>%
-  separate_rows(culprit.gender, sep = ",") %>%
   filter(culprit.gender != "NULL") %>%
-  mutate(culprit.gender=trimws(culprit.gender)) %>%
-  group_by(culprit.gender, motive) %>%
   reframe(count=n()) %>%
   group_by(motive) %>%
   mutate(perc = prop.table(count)) %>%
@@ -261,12 +266,15 @@ scoob %>%
            colors= c("#3399FF", "#D4661B", "#128A84", "#F2C2C2","#8E6357","#B2BB1B","#A51994","#79AF30","#F1D71F")) %>%
       layout(yaxis = list(title = ""),
              xaxis = list(title = "", tickangle = -45),
-             title="<br>Total Motive Count by Scooby-Doo Series<br>", 
+             margin=list(t=50),
+             annotations=list(text="<br>Total Motive Count by Scooby-Doo Series<br>",xref="paper",x=0.80,
+                      yref="paper",y=1,yshift=30,showarrow=FALSE,xanchor='center',
+                      font=list(size=17)),
              legend = list(x = 110, y = 0.5),
              updatemenus = list(
           list(
           x= 1.65, 
-          y=.85,
+          y=.90,
         buttons = list(
           list(method = "restyle",
                args = list("visible", list(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)),
